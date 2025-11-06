@@ -1,0 +1,19 @@
+# For details on buf.yaml configuration, visit https://buf.build/docs/configuration/v2/buf-yaml
+version: v2
+modules:
+  - path: .
+    name: buf.build/edera-dev/protect
+lint:
+  enum_zero_value_suffix: _UNKNOWN
+  ignore_only:
+    ENUM_ZERO_VALUE_SUFFIX:
+      - protect/common/v1/common.proto
+    RPC_REQUEST_STANDARD_NAME:
+      - protect/control/v1/control.proto
+    RPC_RESPONSE_STANDARD_NAME:
+      - protect/control/v1/control.proto
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

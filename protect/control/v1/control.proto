@@ -1,0 +1,613 @@
+syntax = "proto3";
+
+package protect.control.v1;
+
+import "protect/control/v1/common.proto";
+
+service ControlService {
+  rpc GetHostStatus(GetHostStatusRequest) returns (GetHostStatusReply);
+  rpc SnoopIdm(SnoopIdmRequest) returns (stream SnoopIdmReply);
+  rpc GetHostCpuTopology(GetHostCpuTopologyRequest) returns (GetHostCpuTopologyReply);
+
+  rpc ListDevices(ListDevicesRequest) returns (ListDevicesReply);
+
+  rpc CreateNetworkReservation(CreateNetworkReservationRequest) returns (CreateNetworkReservationReply);
+  rpc DestroyNetworkReservation(DestroyNetworkReservationRequest) returns (DestroyNetworkReservationReply);
+  rpc ListNetworkReservations(ListNetworkReservationsRequest) returns (stream ListNetworkReservationsReply);
+
+  rpc PullImage(PullImageRequest) returns (stream PullImageReply);
+  rpc ImportImage(stream ImportImageRequest) returns (stream ImportImageReply);
+  rpc RemoveImage(RemoveImageRequest) returns (RemoveImageReply);
+  rpc ListImages(ListImagesRequest) returns (stream ListImagesReply);
+
+  rpc CreateZone(CreateZoneRequest) returns (CreateZoneReply);
+  rpc DestroyZone(DestroyZoneRequest) returns (DestroyZoneReply);
+
+  rpc ResolveZoneId(ResolveZoneIdRequest) returns (ResolveZoneIdReply);
+  rpc ResolveZoneIds(ResolveZoneIdsRequest) returns (ResolveZoneIdsReply);
+  rpc GetZone(GetZoneRequest) returns (GetZoneReply);
+  rpc ListZones(ListZonesRequest) returns (stream ListZonesReply);
+
+  rpc UpdateZoneResources(UpdateZoneResourcesRequest) returns (UpdateZoneResourcesReply);
+  rpc ConfigureZoneNetwork(ConfigureZoneNetworkRequest) returns (ConfigureZoneNetworkReply);
+
+  rpc AttachZoneConsole(stream ZoneConsoleRequest) returns (stream ZoneConsoleReply);
+  rpc ExecuteZoneCommand(stream ExecuteZoneCommandRequest) returns (stream ExecuteZoneCommandReply);
+  rpc ReadZoneMetrics(ReadZoneMetricsRequest) returns (ReadZoneMetricsReply);
+  rpc MonitorZoneKernelEvents(stream MonitorZoneKernelEventRequest) returns (stream MonitorZoneKernelEventReply);
+
+  rpc CreateWorkload(CreateWorkloadRequest) returns (CreateWorkloadReply);
+  rpc StartWorkload(StartWorkloadRequest) returns (StartWorkloadReply);
+  rpc StopWorkload(StopWorkloadRequest) returns (StopWorkloadReply);
+  rpc DestroyWorkload(DestroyWorkloadRequest) returns (DestroyWorkloadReply);
+
+  rpc AttachWorkloadConsole(stream WorkloadConsoleRequest) returns (stream WorkloadConsoleReply);
+
+  rpc ResolveWorkloadId(ResolveWorkloadIdRequest) returns (ResolveWorkloadIdReply);
+  rpc ResolveWorkloadIds(ResolveWorkloadIdsRequest) returns (ResolveWorkloadIdsReply);
+  rpc ListWorkloads(ListWorkloadsRequest) returns (stream ListWorkloadsReply);
+  rpc GetWorkload(GetWorkloadRequest) returns (GetWorkloadReply);
+
+  rpc WatchEvents(WatchEventsRequest) returns (stream WatchEventsReply);
+
+  rpc ReadHypervisorConsole(ReadHypervisorConsoleRequest) returns (ReadHypervisorConsoleReply);
+  rpc HypervisorDebugInfo(HypervisorDebugInfoRequest) returns (HypervisorDebugInfoReply);
+  rpc SetHostPowerManagementPolicy(SetHostPowerManagementPolicyRequest) returns (SetHostPowerManagementPolicyReply);
+
+  rpc DialNetworkSocket(stream DialNetworkSocketRequest) returns (stream DialNetworkSocketReply);
+}
+
+message GetHostStatusRequest {}
+
+message GetHostStatusReply {
+  string host_uuid = 1;
+  uint32 host_domid = 2;
+  string protect_version = 3;
+  string host_ipv4 = 4;
+  string host_ipv6 = 5;
+  string host_mac = 6;
+}
+
+message CreateZoneRequest {
+  ZoneSpec spec = 1;
+}
+
+message CreateZoneReply {
+  string zone_id = 1;
+}
+
+message DestroyZoneRequest {
+  string zone_id = 1;
+}
+
+message DestroyZoneReply {}
+
+message ResolveZoneIdRequest {
+  string name = 1;
+}
+
+message ResolveZoneIdReply {
+  string zone_id = 1;
+}
+
+message ResolveZoneIdsRequest {
+  string name = 1;
+}
+
+message ResolveZoneIdsReply {
+  repeated string zone_ids = 1;
+}
+
+message GetZoneRequest {
+  string zone_id = 1;
+}
+
+message GetZoneReply {
+  Zone zone = 1;
+}
+
+message ListZonesRequest {}
+
+message ListZonesReply {
+  repeated Zone zones = 1;
+}
+
+message ZoneKernelEventStreamUpdate {
+  repeated uint32 enabled_syscalls = 2;
+}
+
+message ZoneKernelEventStreamStop {}
+
+// roughly maps to libscap's `scap_threadinfo` type.
+message ZoneKernelThreadInfo {
+  optional uint64 tid = 1;
+  optional uint64 pid = 2; //threads ALWAYS have a pid(tgid) IRL - this is optional as shorthand for "fully vs partially constructed".
+  optional uint64 ptid = 3;
+  uint64 sid = 4;
+  uint64 vpgid = 5;
+  uint64 pgid = 6;
+  string comm = 7;
+  string exe = 8;
+  string exepath = 9;
+  bool exe_writable = 10;
+  bool exe_upper_layer = 11;
+  bool exe_lower_layer = 12;
+  bool exe_from_memfd = 13;
+  string args = 14;
+  string env = 15;
+  string cwd = 16;
+  int64 fdlimit = 17;
+  uint32 flags = 18;
+  uint32 uid = 19;
+  uint32 gid = 20;
+  uint64 cap_permitted = 21;
+  uint64 cap_effective = 22;
+  uint64 cap_inheritable = 23;
+  uint64 exe_ino = 24;
+  uint64 exe_ino_ctime = 25;
+  uint64 exe_ino_mtime = 26;
+  uint64 exe_ino_ctime_duration_clone_ts = 27;
+  uint64 exe_ino_ctime_duration_pidns_start = 28;
+  uint32 vmsize_kb = 29;
+  uint32 vmrss_kb = 30;
+  uint32 vmswap_kb = 31;
+  uint64 pfmajor = 32;
+  uint64 pfminor = 33;
+  optional uint64 vtid = 34;
+  optional uint64 vpid = 35;
+  uint64 pidns_init_start_ts = 36;
+  string cgroups = 37;
+  string root = 38;
+  bool filtered_out = 39;
+  map<uint64, ZoneKernelFdInfo> fdlist = 40;
+  uint64 clone_ts = 41;
+  uint32 tty = 42;
+  uint32 loginuid = 43;
+  uint64 lastexec_ts = 44;
+  bool reaper = 45;
+}
+
+message ZoneKernelFdInfo {
+  optional uint64 fd = 1; //unset fd id == invalid fd info
+  uint64 inode = 2;
+  ZoneKernelFdType fd_type = 3;
+  ZoneKernelFdInfoData info = 4;
+  // these two are not typically set at capture time,
+  // but are updated at parse time.
+  uint32 open_flags = 5;
+  uint32 state_flags = 6;
+}
+
+enum ZoneKernelFdType {
+  ZONE_KERNEL_FD_TYPE_UNKNOWN = 0;
+  ZONE_KERNEL_FD_TYPE_FILE = 1;
+  ZONE_KERNEL_FD_TYPE_DIRECTORY = 2;
+  ZONE_KERNEL_FD_TYPE_IPV4_SOCK = 3;
+  ZONE_KERNEL_FD_TYPE_IPV6_SOCK = 4;
+  ZONE_KERNEL_FD_TYPE_IPV4_SERVSOCK = 5;
+  ZONE_KERNEL_FD_TYPE_IPV6_SERVSOCK = 6;
+  ZONE_KERNEL_FD_TYPE_FIFO = 7;
+  ZONE_KERNEL_FD_TYPE_UNIX_SOCK = 8;
+  ZONE_KERNEL_FD_TYPE_EVENT = 9;
+  ZONE_KERNEL_FD_TYPE_UNSUPPORTED = 10;
+  ZONE_KERNEL_FD_TYPE_SIGNALFD = 11;
+  ZONE_KERNEL_FD_TYPE_EVENTPOLL = 12;
+  ZONE_KERNEL_FD_TYPE_INOTIFY = 13;
+  ZONE_KERNEL_FD_TYPE_TIMERFD = 14;
+  ZONE_KERNEL_FD_TYPE_NETLINK = 15;
+  ZONE_KERNEL_FD_TYPE_FILE_V2 = 16;
+  ZONE_KERNEL_FD_TYPE_BPF = 17;
+  ZONE_KERNEL_FD_TYPE_USERFAULTFD = 18;
+  ZONE_KERNEL_FD_TYPE_IOURING = 19;
+  ZONE_KERNEL_FD_TYPE_MEMFD = 20;
+  ZONE_KERNEL_FD_TYPE_PIDFD = 21;
+}
+
+message ZoneKernelFdInfoData {
+  oneof info_type {
+    ZoneKernelIpv4SocketInfo ipv4_socket = 1;
+    ZoneKernelIpv6SocketInfo ipv6_socket = 2;
+    ZoneKernelIpv4ServerSocketInfo ipv4_server_socket = 3;
+    ZoneKernelIpv6ServerSocketInfo ipv6_server_socket = 4;
+    ZoneKernelUnixSocketInfo unix_socket = 5;
+    ZoneKernelRegularFileInfo regular_file = 6;
+    string file_name = 7;
+    ZoneKernelPidFd pidfd = 8;
+  }
+}
+
+enum ZoneKernelIPProtocol {
+  ZONE_KERNEL_IP_PROTOCOL_UNKNOWN = 0;
+  ZONE_KERNEL_IP_PROTOCOL_NA = 1;
+  ZONE_KERNEL_IP_PROTOCOL_TCP = 2;
+  ZONE_KERNEL_IP_PROTOCOL_UDP = 3;
+  ZONE_KERNEL_IP_PROTOCOL_ICMP = 4;
+  ZONE_KERNEL_IP_PROTOCOL_RAW = 5;
+}
+
+message ZoneKernelIpv4SocketInfo {
+  string source_ip = 1; // IPv4 address as string
+  string dest_ip = 2; // IPv4 address as string
+  uint32 source_port = 3;
+  uint32 dest_port = 4;
+  ZoneKernelIPProtocol protocol = 5;
+}
+
+message ZoneKernelIpv6SocketInfo {
+  string source_ip = 1; // IPv6 address as string
+  string dest_ip = 2; // IPv6 address as string
+  uint32 source_port = 3;
+  uint32 dest_port = 4;
+  ZoneKernelIPProtocol protocol = 5;
+}
+
+message ZoneKernelIpv4ServerSocketInfo {
+  string local_ip = 1; // IPv4 address as string
+  uint32 local_port = 2;
+  ZoneKernelIPProtocol protocol = 3;
+}
+
+message ZoneKernelIpv6ServerSocketInfo {
+  string local_ip = 1; // IPv6 address as string
+  uint32 local_port = 2;
+  ZoneKernelIPProtocol protocol = 3;
+}
+
+message ZoneKernelUnixSocketInfo {
+  uint64 source = 1;
+  uint64 destination = 2;
+  string name = 3;
+}
+
+message ZoneKernelRegularFileInfo {
+  uint32 open_flags = 1;
+  string name = 2;
+  uint32 mount_id = 3;
+  uint32 device = 4;
+}
+
+message ZoneKernelPidFd {
+  uint64 pid = 1;
+}
+
+// Roughly maps to the Falco libscap format for generic events:
+// https://falco.org/docs/reference/plugins/plugin-api-reference/#libscap-event-block-specification
+message ZoneKernelSyscallEvent {
+  string zone_id = 1;
+  uint64 timestamp = 2;
+  uint64 thread_id = 3; // TODO BML possibly not needed for plugin events.
+  uint32 event_length = 4; //header + params
+  string event_name = 5;
+  string event_category = 6;
+  uint32 event_flags = 8; // Event flags (bitmask, see `ppm_evt_flags` in falcosecurity/libs/driver/ppm_events_public.h) - not part of the raw payload but contains helpful serialization hints.
+  uint32 event_type = 9; // Event type
+  uint32 cpuid = 10;
+  repeated ZoneKernelEventParam event_params = 7;
+}
+
+message ZoneKernelThreadSnapshotEvent {
+  string zone_id = 2;
+  map<uint64, ZoneKernelThreadInfo> thread_info = 1;
+  uint64 zone_boot_epoch = 3; // some thread info timestamp fields are relative to this
+}
+
+message MonitorZoneKernelEventRequest {
+  string zone_id = 1;
+  oneof request {
+    ZoneKernelEventStreamUpdate update = 3;
+    ZoneKernelEventStreamStop stop = 4;
+  }
+}
+
+// Note that `zone_id` is duplicated within each
+// reply type, and not simply defined once in the toplevel
+// message. This is intentional, as it makes bincoding the
+// internal reply types as bytes easier.
+message MonitorZoneKernelEventReply {
+  oneof reply {
+    ZoneKernelSyscallEvent syscall = 2;
+    ZoneKernelThreadSnapshotEvent threadsnap = 3;
+  }
+}
+
+// in libscap, events are packed on the wire accordingly:
+// - a header
+// - an arbitrary sequence of 2-or-4-byte numbers for each param, indicating param lengths
+//   (4-bytes if `EF_LARGE_PAYLOAD` bitmask is set on `ppm_evt_flags`, otherwise 2)
+// - an arbitrary sequence of bytes for each param, encoding param data/values.
+// This represents the non-header parts of the event.
+// The number of paramters, as well as whether the param lengths are represented as 2 or 4 byte numbers,
+// is defined by the header in libscap, but for convenience those are colocated in this message here.
+message ZoneKernelEventParam {
+  string name = 1;
+  uint32 param_type = 2;
+  bytes param_data = 3;
+  string param_pretty = 4;
+  string param_type_pretty = 5;
+}
+
+message ExecuteZoneCommandRequest {
+  oneof request {
+    ExecuteZoneCommandStart start = 1;
+    ExecuteZoneCommandStdin stdin = 2;
+    ExecuteZoneCommandTerminalResize terminal_resize = 3;
+  }
+}
+
+message ExecuteZoneCommandStart {
+  string zone_id = 1;
+  string workload_id = 2;
+  ProcessSpec process = 3;
+}
+
+message ExecuteZoneCommandStdin {
+  bytes stdin = 1;
+  bool closed = 2;
+}
+
+message ExecuteZoneCommandTerminalResize {
+  TerminalSize size = 1;
+}
+
+message ExecuteZoneCommandOutput {
+  bytes stdout = 1;
+  bytes stderr = 2;
+}
+
+message ExecuteZoneCommandExited {
+  int32 exit_code = 1;
+}
+
+message ExecuteZoneCommandReply {
+  oneof reply {
+    ExecuteZoneCommandOutput output = 1;
+    ExecuteZoneCommandExited exited = 2;
+  }
+}
+
+message ZoneConsoleRequest {
+  string zone_id = 1;
+  bytes data = 2;
+  bool replay_history = 3;
+}
+
+message ZoneConsoleReply {
+  bytes data = 1;
+}
+
+message WorkloadConsoleRequest {
+  string workload_id = 1;
+  bytes stdin = 2;
+  bool stdin_closed = 3;
+  TerminalSize terminal_resize = 4;
+}
+
+message WorkloadConsoleReply {
+  bytes stdout = 1;
+  bytes stderr = 2;
+}
+
+message WatchEventsRequest {}
+
+message WatchEventsReply {
+  oneof event {
+    ZoneChangedEvent zone_changed = 1;
+    WorkloadChangedEvent workload_changed = 2;
+  }
+}
+
+message ZoneChangedEvent {
+  Zone zone = 1;
+}
+
+message WorkloadChangedEvent {
+  Workload workload = 1;
+}
+
+message ReadZoneMetricsRequest {
+  string zone_id = 1;
+}
+
+message ReadZoneMetricsReply {
+  MetricNode root = 1;
+}
+
+message SnoopIdmRequest {}
+
+message SnoopIdmReply {
+  repeated SnoopIdmPacket packets = 1;
+  uint64 skipped = 2;
+}
+
+message SnoopIdmPacket {
+  string from = 1;
+  string to = 2;
+  bytes packet = 3;
+}
+
+message PullImageRequest {
+  string image = 1;
+  OciImageFormat format = 2;
+  bool overwrite_cache = 3;
+  bool update = 4;
+  bool want_metadata = 5;
+  OciRegistryAuthentication auth = 6;
+}
+
+message PullImageReply {
+  OciImageProgress progress = 1;
+  OciImageSpec spec = 2;
+  OciImageMetadata metadata = 3;
+}
+
+message ImportImageRequest {
+  string digest = 1;
+  string image = 2;
+  OciImageFormat format = 3;
+  bytes chunk = 4;
+  bool last_chunk = 5;
+  bool overwrite_cache = 6;
+  bool want_metadata = 7;
+}
+
+message ImportImageReply {
+  bool accepted = 1;
+  OciImageProgress progress = 2;
+  OciImageSpec spec = 3;
+  OciImageMetadata metadata = 4;
+}
+
+message RemoveImageRequest {
+  string digest = 1;
+  OciImageFormat format = 2;
+}
+
+message RemoveImageReply {
+  bool removed = 1;
+}
+
+message ListImagesRequest {}
+
+message ListImagesReply {
+  repeated OciImageInfo images = 1;
+}
+
+message ListDevicesRequest {}
+
+message ListDevicesReply {
+  repeated DeviceInfo devices = 1;
+}
+
+message GetHostCpuTopologyRequest {}
+
+message GetHostCpuTopologyReply {
+  repeated HostCpuTopologyInfo cpus = 1;
+}
+
+message SetHostPowerManagementPolicyRequest {
+  string scheduler = 1;
+  bool smt_awareness = 2;
+}
+
+message SetHostPowerManagementPolicyReply {}
+
+message UpdateZoneResourcesRequest {
+  string zone_id = 1;
+  ZoneResourcesSpec resources = 2;
+}
+
+message UpdateZoneResourcesReply {}
+
+message ReadHypervisorConsoleRequest {}
+
+message ReadHypervisorConsoleReply {
+  string data = 1;
+}
+
+message ListNetworkReservationsRequest {}
+
+message ListNetworkReservationsReply {
+  repeated NetworkReservation reservations = 1;
+}
+
+message CreateNetworkReservationRequest {}
+
+message CreateNetworkReservationReply {
+  NetworkReservation reservation = 1;
+}
+
+message DestroyNetworkReservationRequest {
+  string reservation_id = 1;
+}
+
+message DestroyNetworkReservationReply {}
+
+message HypervisorDebugInfoRequest {}
+
+message HypervisorDebugInfoReply {
+  string json = 1;
+}
+
+message CreateWorkloadRequest {
+  WorkloadSpec spec = 1;
+}
+
+message CreateWorkloadReply {
+  string workload_id = 1;
+}
+
+message StartWorkloadRequest {
+  string workload_id = 1;
+}
+
+message StartWorkloadReply {}
+
+message StopWorkloadRequest {
+  string workload_id = 1;
+}
+
+message StopWorkloadReply {}
+
+message DestroyWorkloadRequest {
+  string workload_id = 1;
+}
+
+message DestroyWorkloadReply {}
+
+message ResolveWorkloadIdRequest {
+  string name = 1;
+}
+
+message ResolveWorkloadIdReply {
+  string workload_id = 1;
+}
+
+message ResolveWorkloadIdsRequest {
+  string name = 1;
+}
+
+message ResolveWorkloadIdsReply {
+  repeated string workload_ids = 1;
+}
+
+message ListWorkloadsRequest {}
+
+message ListWorkloadsReply {
+  repeated Workload workloads = 1;
+}
+
+message GetWorkloadRequest {
+  string workload_id = 1;
+}
+
+message GetWorkloadReply {
+  Workload workload = 1;
+}
+
+message ConfigureZoneNetworkRequest {
+  string zone_id = 1;
+  ZoneNetworkConfig config = 2;
+}
+
+message ConfigureZoneNetworkReply {}
+
+message DialNetworkSocketRequest {
+  oneof request {
+    DialNetworkSocketStart start = 1;
+    DialNetworkSocketData data = 2;
+  }
+}
+
+message DialNetworkSocketStart {
+  string zone_id = 1;
+  string address = 2;
+  uint32 port = 3;
+}
+
+message DialNetworkSocketData {
+  bytes content = 1;
+}
+
+message DialNetworkSocketReply {
+  DialNetworkSocketData data = 1;
+}

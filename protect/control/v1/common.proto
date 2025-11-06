@@ -1,0 +1,534 @@
+syntax = "proto3";
+
+package protect.control.v1;
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+message Zone {
+  string id = 1;
+  ZoneSpec spec = 2;
+  ZoneStatus status = 3;
+}
+
+message ZoneSpec {
+  string name = 1;
+  // If not specified, defaults to the daemon default kernel.
+  OciImageSpec kernel = 2;
+  // If not specified, defaults to the daemon default initrd.
+  OciImageSpec initrd = 3;
+  KernelOptionsSpec kernel_options = 4;
+  ZoneResourcesSpec initial_resources = 5;
+  repeated AnnotationSpec annotations = 6;
+  repeated DeviceReferenceSpec devices = 7;
+  ZoneNetworkOptionsSpec network_options = 8;
+  ZoneVirtualizationOptionsSpec virtualization_options = 9;
+  ZoneScratchDiskSpec scratch_disk = 10;
+  repeated OciImageSpec addons = 11;
+}
+
+enum ZoneResourceAdjustmentPolicy {
+  ZONE_RESOURCE_ADJUSTMENT_POLICY_UNKNOWN = 0;
+  ZONE_RESOURCE_ADJUSTMENT_POLICY_STATIC = 1;
+  ZONE_RESOURCE_ADJUSTMENT_POLICY_DYNAMIC = 2;
+}
+
+message ZoneResourcesSpec {
+  uint64 max_memory = 1;
+  uint64 min_memory = 6;
+  uint64 target_memory = 2;
+  uint32 max_cpus = 3;
+  uint32 min_cpus = 7;
+  uint32 target_cpus = 4;
+  ZoneResourceAdjustmentPolicy adjustment_policy = 5;
+}
+
+message KernelModuleParameter {
+  string module = 1;
+  string parameter = 2;
+}
+
+message KernelSysctlParameter {
+  string key = 1;
+  string value = 2;
+}
+
+message KernelOptionsSpec {
+  bool verbose = 1;
+  string cmdline_append = 2;
+  repeated string cmdline = 3;
+  repeated string modules = 4;
+  repeated KernelModuleParameter module_parameters = 5;
+  repeated KernelSysctlParameter sysctl_parameters = 6;
+}
+
+enum ZoneNetworkBackend {
+  ZONE_NETWORK_BACKEND_DEFAULT = 0;
+  ZONE_NETWORK_BACKEND_NONE = 1;
+  ZONE_NETWORK_BACKEND_EXTERNAL = 2;
+  ZONE_NETWORK_BACKEND_PASSTHROUGH = 3;
+}
+
+message ZoneNetworkOptionsSpec {
+  string assume_network_reservation = 1;
+  bool retain_network_reservation = 2;
+  ZoneNetworkOptionsDnsSpec dns_config = 3;
+  ZoneNetworkBackend backend = 4;
+}
+
+message ZoneNetworkOptionsDnsSpec {
+  repeated string nameservers = 3;
+  repeated string searches = 4;
+  repeated string options = 5;
+}
+
+message ZoneVirtualizationOptionsSpec {
+  ZoneVirtualizationBackend backend = 1;
+}
+
+enum ZoneVirtualizationBackend {
+  ZONE_VIRTUALIZATION_BACKEND_UNKNOWN = 0;
+  ZONE_VIRTUALIZATION_BACKEND_PV = 1;
+  ZONE_VIRTUALIZATION_BACKEND_PVH = 2;
+}
+
+message OciImageSpec {
+  string digest = 1;
+  OciImageFormat format = 2;
+}
+
+message OciImageMetadata {
+  bytes manifest = 1;
+  bytes config = 2;
+}
+
+message OciImageInfo {
+  string digest = 1;
+  OciImageFormat format = 2;
+  repeated string names = 3;
+  OciImageMetadata metadata = 4;
+}
+
+enum ProcessNamespace {
+  PROCESS_NAMESPACE_MOUNT = 0;
+  PROCESS_NAMESPACE_UTS = 1;
+  PROCESS_NAMESPACE_IPC = 2;
+  PROCESS_NAMESPACE_USER = 3;
+  PROCESS_NAMESPACE_PID = 4;
+  PROCESS_NAMESPACE_NET = 5;
+  PROCESS_NAMESPACE_CGROUP = 6;
+  PROCESS_NAMESPACE_TIME = 7;
+}
+
+message ProcessSpec {
+  repeated EnvironmentVariableSpec environment = 1;
+  repeated string command = 2;
+  string working_directory = 3;
+  bool tty = 4;
+  TerminalSize terminal_size = 5;
+  IdOrNameValue user = 6;
+  IdOrNameValue group = 7;
+  bool stdin = 8;
+  bool stdout = 9;
+  bool stderr = 10;
+  reserved 11, 12;
+}
+
+message MountSpec {
+  string host_path = 1;
+  string target_path = 2;
+}
+
+message EnvironmentVariableSpec {
+  string key = 1;
+  string value = 2;
+}
+
+message AnnotationSpec {
+  string key = 1;
+  string value = 2;
+}
+
+message DeviceReferenceSpec {
+  string name = 1;
+}
+
+message ZoneStatus {
+  ZoneState state = 1;
+  ZoneNetworkStatus network_status = 2;
+  ZoneExitStatus exit_status = 3;
+  ZoneErrorStatus error_status = 4;
+  string host = 5;
+  uint32 domid = 6;
+  ZoneResourceStatus resource_status = 7;
+  google.protobuf.Timestamp created_at = 8;
+  ZoneDeviceStatus device_status = 9;
+  google.protobuf.Timestamp ready_at = 10;
+}
+
+enum ZoneState {
+  ZONE_STATE_UNKNOWN = 0;
+  ZONE_STATE_CREATING = 1;
+  ZONE_STATE_CREATED = 2;
+  ZONE_STATE_READY = 3;
+  ZONE_STATE_EXITED = 4;
+  ZONE_STATE_DESTROYING = 5;
+  ZONE_STATE_DESTROYED = 6;
+  ZONE_STATE_FAILED = 7;
+}
+
+enum ZoneNetworkIpVersion {
+  ZONE_NETWORK_IP_VERSION_UNKNOWN = 0;
+  ZONE_NETWORK_IP_VERSION_V4 = 1;
+  ZONE_NETWORK_IP_VERSION_V6 = 2;
+}
+
+// NUD stands for Neighbor Unreachability Detection
+// and signals how or if neighbor mapping entries will be autopruned.
+enum ZoneNetworkNUDMode {
+  ZONE_NETWORK_NUD_MODE_PERMANENT = 0;
+  ZONE_NETWORK_NUD_MODE_NOARP = 1;
+  ZONE_NETWORK_NUD_MODE_REACHABLE = 2;
+  // TODO(bleggett) there are more modes but we don't care about them.
+}
+
+message ZoneNetworkIp {
+  ZoneNetworkIpVersion version = 1;
+  string address = 2;
+  string gateway = 3;
+}
+
+message ZoneNetworkRoute {
+  ZoneNetworkIpVersion version = 1;
+  string source = 2;
+  string destination = 3;
+  string gateway = 4;
+  string output_interface = 5;
+  uint32 scope = 6;
+  uint32 table = 7;
+  uint32 protocol = 8;
+  uint32 kind = 9;
+  string pref_source = 10;
+}
+
+// Represents a command like
+// `ip neigh add 168.254.1.1 lladdr 06:26:7a:34:d9:c5 dev eth0 nud permanent`
+// See `man ip-neighbor(8)` for details.
+message ZoneNetworkNeighborEntry {
+  ZoneNetworkIpVersion version = 1;
+  string ip_address = 2;
+  string link_layer_address = 3;
+  string attached_interface = 4;
+  ZoneNetworkNUDMode unreachability_detection = 5;
+  uint32 kind = 6;
+}
+
+message ZoneNetworkConfig {
+  repeated ZoneNetworkInterfaceConfig interfaces = 1;
+  repeated ZoneNetworkRoute routes = 2;
+  repeated ZoneNetworkNeighborEntry neighbors = 3;
+}
+
+message ZoneNetworkInterfaceConfig {
+  string zone_interface = 1;
+  string zone_mac = 2;
+  repeated ZoneNetworkIp ips = 3;
+  uint32 mtu = 4;
+}
+
+message ZoneNetworkInterfaceStatus {
+  string host_interface = 1;
+  string zone_interface = 2;
+  string zone_mac = 3;
+  repeated ZoneNetworkIp ips = 4;
+  uint32 mtu = 5;
+}
+
+message ZoneNetworkStatus {
+  repeated ZoneNetworkInterfaceStatus interfaces = 1;
+  repeated ZoneNetworkRoute routes = 2;
+  repeated ZoneNetworkNeighborEntry neighbors = 3;
+}
+
+message ZoneExitStatus {
+  int32 code = 1;
+}
+
+message ZoneErrorStatus {
+  string message = 1;
+}
+
+message ZoneResourceStatus {
+  ZoneResourcesSpec active_resources = 1;
+}
+
+message MetricNode {
+  string name = 1;
+  google.protobuf.Value value = 2;
+  MetricFormat format = 3;
+  repeated MetricNode children = 4;
+}
+
+enum MetricFormat {
+  METRIC_FORMAT_UNKNOWN = 0;
+  METRIC_FORMAT_BYTES = 1;
+  METRIC_FORMAT_INTEGER = 2;
+  METRIC_FORMAT_DURATION_SECONDS = 3;
+  METRIC_FORMAT_PERCENT = 4;
+}
+
+message TerminalSize {
+  uint32 rows = 1;
+  uint32 columns = 2;
+}
+
+message IdOrNameValue {
+  oneof id_or_name {
+    uint32 id = 1;
+    string name = 2;
+  }
+}
+
+message NetworkReservation {
+  string uuid = 1;
+  string ipv4 = 2;
+  string ipv6 = 3;
+  string mac = 4;
+  string gateway_ipv4 = 5;
+  string gateway_ipv6 = 6;
+  string gateway_mac = 7;
+}
+
+message WorkloadSpec {
+  string name = 1;
+  string zone_id = 2;
+  OciImageSpec image = 3;
+  ProcessSpec process = 4;
+  repeated AnnotationSpec annotations = 5;
+  repeated MountSpec mounts = 6;
+  WorkloadSecuritySpec security = 7;
+  repeated WorkloadScratchMount scratch_mount = 8;
+}
+
+message WorkloadScratchMount {
+  string path = 1;
+}
+
+message WorkloadSecuritySpec {
+  bool strict_user_namespace = 1;
+  repeated string raise_capabilities = 2;
+  repeated string raise_ambient_capabilities = 3;
+  repeated string drop_capabilities = 4;
+  bool privileged = 5;
+  bool disable_all_namespaces = 6;
+  repeated ProcessNamespace disable_namespaces = 7;
+}
+
+enum WorkloadState {
+  WORKLOAD_STATE_UNKNOWN = 0;
+  WORKLOAD_STATE_CREATING = 1;
+  WORKLOAD_STATE_CREATED = 2;
+  WORKLOAD_STATE_RUNNING = 3;
+  WORKLOAD_STATE_COMPLETED = 4;
+  WORKLOAD_STATE_DESTROYING = 5;
+  WORKLOAD_STATE_DESTROYED = 6;
+  WORKLOAD_STATE_FAILED = 7;
+}
+
+message WorkloadStatus {
+  WorkloadState state = 1;
+  WorkloadExitStatus exit_status = 2;
+  WorkloadErrorStatus error_status = 3;
+  WorkloadBlockDeviceStatus block_device_status = 4;
+  WorkloadMountStatus mount_status = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message WorkloadBlockDeviceInfo {
+  uint32 block_index = 1;
+  uint64 device_id = 2;
+  string loop_device = 3;
+}
+
+message WorkloadBlockDeviceStatus {
+  repeated WorkloadBlockDeviceInfo devices = 1;
+}
+
+message WorkloadMountInfo {
+  uint64 device_id = 1;
+  string tag = 2;
+  string host_directory = 3;
+  string host_file = 4;
+  string target_path = 5;
+}
+
+message WorkloadMountStatus {
+  repeated WorkloadMountInfo devices = 1;
+}
+
+message WorkloadExitStatus {
+  int32 code = 1;
+}
+
+message WorkloadErrorStatus {
+  string message = 1;
+}
+
+message Workload {
+  string id = 1;
+  WorkloadSpec spec = 2;
+  WorkloadStatus status = 3;
+}
+
+enum HostCpuTopologyClass {
+  HOST_CPU_TOPOLOGY_CLASS_STANDARD = 0;
+  HOST_CPU_TOPOLOGY_CLASS_PERFORMANCE = 1;
+  HOST_CPU_TOPOLOGY_CLASS_EFFICIENCY = 2;
+}
+
+message HostCpuTopologyInfo {
+  uint32 core = 1;
+  uint32 socket = 2;
+  uint32 node = 3;
+  uint32 thread = 4;
+  HostCpuTopologyClass class = 5;
+}
+
+enum OciImageFormat {
+  OCI_IMAGE_FORMAT_UNKNOWN = 0;
+  OCI_IMAGE_FORMAT_SQUASHFS = 1;
+  OCI_IMAGE_FORMAT_EROFS = 2;
+  // Tar and directory formats are not launchable, and are intended for internal images.
+  OCI_IMAGE_FORMAT_TAR = 3;
+  OCI_IMAGE_FORMAT_DIRECTORY = 4;
+}
+
+message OciImageProgress {
+  OciImageProgressPhase phase = 1;
+  repeated OciImageProgressLayer layers = 2;
+  OciImageProgressIndication indication = 3;
+}
+
+enum OciImageProgressPhase {
+  OCI_IMAGE_PROGRESS_PHASE_UNKNOWN = 0;
+  OCI_IMAGE_PROGRESS_PHASE_STARTED = 1;
+  OCI_IMAGE_PROGRESS_PHASE_RESOLVING = 2;
+  OCI_IMAGE_PROGRESS_PHASE_RESOLVED = 3;
+  OCI_IMAGE_PROGRESS_PHASE_CONFIG_DOWNLOAD = 4;
+  OCI_IMAGE_PROGRESS_PHASE_LAYER_DOWNLOAD = 5;
+  OCI_IMAGE_PROGRESS_PHASE_ASSEMBLE = 6;
+  OCI_IMAGE_PROGRESS_PHASE_PACK = 7;
+  OCI_IMAGE_PROGRESS_PHASE_COMPLETE = 8;
+}
+
+message OciImageProgressLayer {
+  string id = 1;
+  OciImageProgressLayerPhase phase = 2;
+  OciImageProgressIndication indication = 3;
+}
+
+enum OciImageProgressLayerPhase {
+  OCI_IMAGE_PROGRESS_LAYER_PHASE_UNKNOWN = 0;
+  OCI_IMAGE_PROGRESS_LAYER_PHASE_WAITING = 1;
+  OCI_IMAGE_PROGRESS_LAYER_PHASE_DOWNLOADING = 2;
+  OCI_IMAGE_PROGRESS_LAYER_PHASE_DOWNLOADED = 3;
+  OCI_IMAGE_PROGRESS_LAYER_PHASE_EXTRACTING = 4;
+  OCI_IMAGE_PROGRESS_LAYER_PHASE_EXTRACTED = 5;
+}
+
+message OciImageProgressIndication {
+  oneof indication {
+    OciImageProgressIndicationBar bar = 1;
+    OciImageProgressIndicationSpinner spinner = 2;
+    OciImageProgressIndicationHidden hidden = 3;
+    OciImageProgressIndicationCompleted completed = 4;
+  }
+}
+
+message OciImageProgressIndicationBar {
+  string message = 1;
+  uint64 current = 2;
+  uint64 total = 3;
+  bool is_bytes = 4;
+}
+
+message OciImageProgressIndicationSpinner {
+  string message = 1;
+}
+
+message OciImageProgressIndicationHidden {}
+
+message OciImageProgressIndicationCompleted {
+  string message = 1;
+  uint64 total = 2;
+  bool is_bytes = 3;
+}
+
+message DeviceInfo {
+  string name = 1;
+  bool claimed = 2;
+  string owner_zone = 3;
+}
+
+message ZoneScratchDiskSpec {
+  oneof backend {
+    ZoneScratchDiskSpecImage image = 1;
+    ZoneScratchDiskSpecStaticBlock block = 2;
+  }
+}
+
+message ZoneScratchDiskSpecImage {
+  uint64 size = 1;
+}
+
+message ZoneScratchDiskSpecStaticBlock {
+  string path = 1;
+  string device = 2;
+}
+
+message ZoneDeviceStatus {
+  repeated ZoneDiskStatus disks = 1;
+}
+
+enum ZoneDiskStatusDiskPurpose {
+  ZONE_DISK_STATUS_DISK_PURPOSE_UNKNOWN = 0;
+  ZONE_DISK_STATUS_DISK_PURPOSE_ADDONS = 1;
+  ZONE_DISK_STATUS_DISK_PURPOSE_SCRATCH = 2;
+}
+
+message ZoneDiskStatus {
+  string zone_block_device = 1;
+  string host_block_device = 2;
+  string host_image_file = 3;
+  string filesystem_type = 4;
+  ZoneDiskStatusDiskPurpose purpose = 5;
+  bool delete = 6;
+}
+
+message OciRegistryUsernamePassword {
+  // username to provide, empty means no username.
+  string username = 1;
+  // password to provide, empty means no password.
+  string password = 2;
+}
+
+// OCI registry authentication
+// There are many ways this can work:
+// 1. username/password:
+//    a. by providing username/password directly
+//    b. by providing an auth string which is base64 encoded username:password
+// 2. an identity token: provide one token to the server to get another token which is the real token
+// 3. a registry token: an exact, specific registry token to pass to the service
+// We support all of them because that's what Kubernetes passes to us.
+message OciRegistryAuthentication {
+  oneof authentication_method {
+    // username/password to login to the registry.
+    OciRegistryUsernamePassword username_password = 1;
+    // base64-encoded string of username:password representing basic authorization header
+    string raw_basic_auth = 2;
+    // bearer token to provide to get a short-lived token
+    string identity_token = 3;
+    // an exact bearer access token
+    string registry_token = 4;
+  }
+}
