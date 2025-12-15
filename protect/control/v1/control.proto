@@ -56,7 +56,7 @@ service ControlService {
 
   rpc DialNetworkSocket(stream DialNetworkSocketRequest) returns (stream DialNetworkSocketReply);
 
-  rpc SpireMetadata(stream SpireMetadataRequest) returns (stream SpireMetadataReply);
+  rpc SpireMetadata(SpireMetadataRequest) returns (SpireMetadataReply);
 }
 
 message GetHostStatusRequest {}
