@@ -636,7 +636,7 @@ message CreateDeviceRequest {
 }
 
 message CreateDeviceReply {
-  string id = 1;
+  string device_id = 1;
 }
 
 message DestroyDeviceRequest {
