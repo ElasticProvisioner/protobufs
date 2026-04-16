@@ -161,6 +161,10 @@ message WorkloadBlockDeviceSpec {
   BlockDeviceMountOptions mount_options = 3;
 }
 
+message WorkloadPciDeviceSpec {
+  string location = 1;
+}
+
 message BlockDeviceMountOptions {
   bool readonly = 1;
   string permissions = 2;
@@ -326,6 +330,7 @@ message WorkloadSpec {
   string hostname = 10;
   repeated WorkloadBlockDeviceSpec block_devices = 11;
   optional int32 oom_score_adj = 12;
+  repeated WorkloadPciDeviceSpec pci_devices = 13;
 }
 
 message CgroupLimit {
@@ -368,6 +373,7 @@ message WorkloadStatus {
   WorkloadBlockDeviceStatus block_device_status = 4;
   WorkloadMountStatus mount_status = 5;
   google.protobuf.Timestamp created_at = 6;
+  WorkloadPciDeviceStatus pci_device_status = 7;
 }
 
 message WorkloadBlockDeviceInfo {
@@ -378,8 +384,16 @@ message WorkloadBlockDeviceInfo {
   bool loop_dev = 5;
 }
 
+message WorkloadPciDeviceInfo {
+  string location = 1;
+}
+
 message WorkloadBlockDeviceStatus {
   repeated WorkloadBlockDeviceInfo devices = 1;
+}
+
+message WorkloadPciDeviceStatus {
+  repeated WorkloadPciDeviceInfo devices = 1;
 }
 
 message WorkloadMountInfo {
