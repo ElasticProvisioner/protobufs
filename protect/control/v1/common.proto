@@ -84,6 +84,14 @@ message ZoneNetworkOptionsDnsSpec {
 
 message ZoneVirtualizationOptionsSpec {
   ZoneVirtualizationBackend backend = 1;
+  // Requested vNUMA node count.
+  // 0 (default) = auto: placement is driven by vCPU vs. per-node pCPU coverage,
+  // matching legacy behavior. >0 = exact: the daemon will hard-fail if the
+  // request cannot be satisfied with exactly this many vNUMA nodes.
+  uint32 numa_nodes = 2;
+  // Strategy used when expanding the selected node set beyond the seed node.
+  // UNSPECIFIED is treated as COMPACT.
+  NumaStrategy numa_strategy = 3;
 }
 
 enum ZoneVirtualizationBackend {
@@ -91,6 +99,19 @@ enum ZoneVirtualizationBackend {
   ZONE_VIRTUALIZATION_BACKEND_PV = 1;
   ZONE_VIRTUALIZATION_BACKEND_PVH = 2;
   ZONE_VIRTUALIZATION_BACKEND_AUTOMATIC = 3;
+}
+
+enum NumaStrategy {
+  // Treated as COMPACT for placement purposes.
+  NUMA_STRATEGY_UNSPECIFIED = 0;
+  // Expand to the nearest unselected NUMA node by SLIT distance from the
+  // already-selected set, tie-breaking by most free memory.
+  NUMA_STRATEGY_COMPACT = 1;
+  // Expand to the most distant unselected NUMA node by SLIT distance from the
+  // already-selected set, tie-breaking by most free memory. Note: SLIT distance
+  // does not guarantee separation across sockets, IMCs, or LLCs; the benefit
+  // depends on the host's physical topology.
+  NUMA_STRATEGY_SCATTER = 2;
 }
 
 message OciImageSpec {
